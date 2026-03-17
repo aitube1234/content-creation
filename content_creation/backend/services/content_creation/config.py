@@ -36,6 +36,19 @@ class Settings(BaseSettings):
     MIN_CONTENT_LENGTH: int = 10
     MAX_CONTENT_LENGTH: int = 50000
 
+    # AI Video Draft Assembly
+    ASSEMBLY_MIN_SCRIPT_WORDS: int = 100
+    ASSEMBLY_MIN_TOPIC_WORDS: int = 20
+    ASSEMBLY_MAX_INPUT_LENGTH: int = 100000
+    ASSEMBLY_S3_BUCKET: str = "video-drafts"
+    ASSEMBLY_VOICEOVER_MODEL_ID: str = "fr-FR-default"
+    ASSEMBLY_LOCALE: str = "fr-FR"
+    METADATA_ENGINE_BASE_URL: str = "http://localhost:8002"
+    LIFECYCLE_SERVICE_BASE_URL: str = "http://localhost:8003"
+    REDIS_URL: str = "redis://localhost:6379/0"
+    LANGSMITH_API_KEY: str = ""
+    LANGSMITH_PROJECT: str = "ai-video-draft-assembly"
+
     # Logging
     LOG_LEVEL: str = "INFO"
     SERVICE_NAME: str = "content_creation"

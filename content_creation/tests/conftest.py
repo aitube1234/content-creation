@@ -33,6 +33,28 @@ from backend.services.content_creation.video_draft_generation_pipeline.script_pr
 from backend.services.content_creation.video_draft_generation_pipeline.script_prompt_ingestion.service import (
     ScriptPromptIngestionService,
 )
+from backend.services.content_creation.video_draft_generation_pipeline.ai_video_draft_assembly.models import (
+    AssemblyStatus,
+    ContentInputType,
+    ContentItem,
+    LifecycleState,
+    MetadataStatus,
+)
+from backend.services.content_creation.video_draft_generation_pipeline.ai_video_draft_assembly.repository import (
+    ContentItemRepository,
+)
+from backend.services.content_creation.video_draft_generation_pipeline.ai_video_draft_assembly.service import (
+    AssemblyService,
+)
+from backend.services.content_creation.video_draft_generation_pipeline.ai_video_draft_assembly.integrations.s3_client import (
+    S3Client,
+)
+from backend.services.content_creation.video_draft_generation_pipeline.ai_video_draft_assembly.integrations.metadata_engine_client import (
+    MetadataEngineClient,
+)
+from backend.services.content_creation.video_draft_generation_pipeline.ai_video_draft_assembly.integrations.lifecycle_client import (
+    LifecycleClient,
+)
 
 
 CREATOR_ID = uuid.UUID("11111111-1111-1111-1111-111111111111")
@@ -120,6 +142,104 @@ def mock_pipeline_client() -> AsyncMock:
 def service(mock_pipeline_client: AsyncMock) -> ScriptPromptIngestionService:
     """Provide a service instance with mocked pipeline client."""
     return ScriptPromptIngestionService(pipeline_client=mock_pipeline_client)
+
+
+# --- AI Video Draft Assembly fixtures ---
+
+
+@pytest_asyncio.fixture
+async def sample_content_item(async_session: AsyncSession) -> ContentItem:
+    """Create and return a sample content item in DRAFT/COMPLETED state."""
+    record = ContentItem(
+        content_item_id=uuid.uuid4(),
+        creator_id=CREATOR_ID,
+        input_type=ContentInputType.SCRIPT,
+        input_text=" ".join(["word"] * 150),
+        input_locale="fr",
+        lifecycle_state=LifecycleState.DRAFT,
+        assembly_status=AssemblyStatus.COMPLETED,
+        video_draft_url="s3://video-drafts/test/draft/video.mp4",
+        scenes=[
+            {
+                "scene_id": "scene-001",
+                "pacing_value": 1.0,
+                "visual_asset_id": "visual-001",
+                "voice_segment_id": "voice-001",
+            },
+            {
+                "scene_id": "scene-002",
+                "pacing_value": 1.0,
+                "visual_asset_id": "visual-002",
+                "voice_segment_id": "voice-002",
+            },
+        ],
+        metadata_status=MetadataStatus.GENERATED,
+        ai_title="Test Title",
+        ai_description="Test Description",
+        ai_tags=["test", "video"],
+        ai_topic_cluster="general",
+        thumbnail_options=[
+            "s3://video-drafts/test/thumbnails/t1.jpg",
+            "s3://video-drafts/test/thumbnails/t2.jpg",
+            "s3://video-drafts/test/thumbnails/t3.jpg",
+        ],
+        selected_thumbnail_url=None,
+        version_history=[],
+        word_count=150,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+    async_session.add(record)
+    await async_session.commit()
+    return record
+
+
+@pytest.fixture
+def content_item_repository() -> ContentItemRepository:
+    """Provide a ContentItemRepository instance."""
+    return ContentItemRepository()
+
+
+@pytest.fixture
+def mock_s3_client() -> AsyncMock:
+    """Provide a mocked S3 client."""
+    client = AsyncMock(spec=S3Client)
+    client.upload_video_draft = AsyncMock(return_value="s3://video-drafts/test/draft/video.mp4")
+    client.upload_visual_asset = AsyncMock(return_value="s3://video-drafts/test/visuals/v.mp4")
+    client.upload_voice_segment = AsyncMock(return_value="s3://video-drafts/test/voice/v.mp3")
+    client.upload_thumbnail = AsyncMock(return_value="s3://video-drafts/test/thumbnails/t.jpg")
+    return client
+
+
+@pytest.fixture
+def mock_metadata_engine_client() -> AsyncMock:
+    """Provide a mocked metadata engine client."""
+    client = AsyncMock(spec=MetadataEngineClient)
+    client.write_metadata = AsyncMock(return_value=True)
+    return client
+
+
+@pytest.fixture
+def mock_lifecycle_client() -> AsyncMock:
+    """Provide a mocked lifecycle client."""
+    client = AsyncMock(spec=LifecycleClient)
+    client.register_draft = AsyncMock(return_value=True)
+    client.check_availability = AsyncMock(return_value=True)
+    return client
+
+
+@pytest.fixture
+def assembly_service(
+    mock_s3_client: AsyncMock,
+    mock_metadata_engine_client: AsyncMock,
+    mock_lifecycle_client: AsyncMock,
+) -> AssemblyService:
+    """Provide an AssemblyService with mocked external clients."""
+    return AssemblyService(
+        s3_client=mock_s3_client,
+        metadata_engine_client=mock_metadata_engine_client,
+        lifecycle_client=mock_lifecycle_client,
+    )
 
 
 def create_test_app(session_override: AsyncSession | None = None) -> FastAPI:

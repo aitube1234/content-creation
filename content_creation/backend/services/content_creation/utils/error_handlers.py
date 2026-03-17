@@ -19,6 +19,20 @@ def register_exception_handlers(app: FastAPI) -> None:
         PipelineUnavailableError,
         ScriptPromptIngestionError,
     )
+    from backend.services.content_creation.video_draft_generation_pipeline.ai_video_draft_assembly.exceptions import (
+        AIVideoDraftAssemblyError,
+        AssemblyAlreadyProcessingError,
+        AssemblyNotRetryableError,
+        AssemblyPipelineError,
+        ContentItemNotFoundError,
+        InputValidationError,
+        LifecycleServiceUnavailableError,
+        MetadataEngineWriteError,
+        MetadataGenerationError,
+        MicrophonePermissionError,
+        SceneNotFoundError,
+        ThumbnailGenerationError,
+    )
 
     @app.exception_handler(InputRecordNotFoundError)
     async def input_not_found_handler(
@@ -113,6 +127,176 @@ def register_exception_handlers(app: FastAPI) -> None:
             status_code=500,
             content={
                 "error_code": "SCRIPT_PROMPT_INGESTION_ERROR",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    # --- AI Video Draft Assembly exception handlers ---
+
+    @app.exception_handler(ContentItemNotFoundError)
+    async def content_item_not_found_handler(
+        request: Request, exc: ContentItemNotFoundError
+    ) -> JSONResponse:
+        logger.warning("Content item not found: %s", exc.message)
+        return JSONResponse(
+            status_code=404,
+            content={
+                "error_code": "CONTENT_ITEM_NOT_FOUND",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(InputValidationError)
+    async def input_validation_handler(
+        request: Request, exc: InputValidationError
+    ) -> JSONResponse:
+        logger.warning("Input validation failed: %s", exc.message)
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error_code": "INPUT_VALIDATION_ERROR",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(SceneNotFoundError)
+    async def scene_not_found_handler(
+        request: Request, exc: SceneNotFoundError
+    ) -> JSONResponse:
+        logger.warning("Scene not found: %s", exc.message)
+        return JSONResponse(
+            status_code=404,
+            content={
+                "error_code": "SCENE_NOT_FOUND",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(AssemblyPipelineError)
+    async def assembly_pipeline_handler(
+        request: Request, exc: AssemblyPipelineError
+    ) -> JSONResponse:
+        logger.error("Assembly pipeline error: %s", exc.message)
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error_code": "ASSEMBLY_PIPELINE_ERROR",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(AssemblyAlreadyProcessingError)
+    async def assembly_already_processing_handler(
+        request: Request, exc: AssemblyAlreadyProcessingError
+    ) -> JSONResponse:
+        logger.warning("Assembly already processing: %s", exc.message)
+        return JSONResponse(
+            status_code=409,
+            content={
+                "error_code": "ASSEMBLY_ALREADY_PROCESSING",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(AssemblyNotRetryableError)
+    async def assembly_not_retryable_handler(
+        request: Request, exc: AssemblyNotRetryableError
+    ) -> JSONResponse:
+        logger.warning("Assembly not retryable: %s", exc.message)
+        return JSONResponse(
+            status_code=409,
+            content={
+                "error_code": "ASSEMBLY_NOT_RETRYABLE",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(MetadataGenerationError)
+    async def metadata_generation_handler(
+        request: Request, exc: MetadataGenerationError
+    ) -> JSONResponse:
+        logger.error("Metadata generation error: %s", exc.message)
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error_code": "METADATA_GENERATION_ERROR",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(MetadataEngineWriteError)
+    async def metadata_engine_write_handler(
+        request: Request, exc: MetadataEngineWriteError
+    ) -> JSONResponse:
+        logger.error("Metadata engine write error: %s", exc.message)
+        return JSONResponse(
+            status_code=502,
+            content={
+                "error_code": "METADATA_ENGINE_WRITE_ERROR",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(ThumbnailGenerationError)
+    async def thumbnail_generation_handler(
+        request: Request, exc: ThumbnailGenerationError
+    ) -> JSONResponse:
+        logger.error("Thumbnail generation error: %s", exc.message)
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error_code": "THUMBNAIL_GENERATION_ERROR",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(LifecycleServiceUnavailableError)
+    async def lifecycle_unavailable_handler(
+        request: Request, exc: LifecycleServiceUnavailableError
+    ) -> JSONResponse:
+        logger.error("Lifecycle service unavailable: %s", exc.message)
+        return JSONResponse(
+            status_code=502,
+            content={
+                "error_code": "LIFECYCLE_SERVICE_UNAVAILABLE",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(MicrophonePermissionError)
+    async def microphone_permission_handler(
+        request: Request, exc: MicrophonePermissionError
+    ) -> JSONResponse:
+        logger.warning("Microphone permission error: %s", exc.message)
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error_code": "MICROPHONE_PERMISSION_ERROR",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(AIVideoDraftAssemblyError)
+    async def generic_assembly_handler(
+        request: Request, exc: AIVideoDraftAssemblyError
+    ) -> JSONResponse:
+        logger.error("AI video draft assembly error: %s", exc.message)
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error_code": "AI_VIDEO_DRAFT_ASSEMBLY_ERROR",
                 "message": exc.message,
                 "details": exc.details,
             },
