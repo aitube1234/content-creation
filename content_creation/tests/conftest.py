@@ -268,3 +268,202 @@ async def test_client(async_session: AsyncSession) -> AsyncGenerator[AsyncClient
     ) as client:
         yield client
     app.dependency_overrides.clear()
+
+
+# --- Draft Content Item Creation fixtures ---
+
+from backend.services.content_creation.video_draft_generation_pipeline.draft_content_item_creation.enums import (
+    ActorRole,
+    ContributionStatus,
+    CreationSource,
+    MetadataEngineWriteStatus,
+    ReportStatus,
+    VersionEventType,
+)
+from backend.services.content_creation.video_draft_generation_pipeline.draft_content_item_creation.models import (
+    AIGeneratedMetadata,
+    AIGeneratedThumbnail,
+    DraftContentItem,
+    OriginalityReport,
+    VersionHistoryEntry,
+)
+from backend.services.content_creation.video_draft_generation_pipeline.draft_content_item_creation.repository import (
+    DraftContentItemRepository,
+    MetadataRepository,
+    OriginalityReportRepository,
+    ThumbnailRepository,
+    VersionHistoryRepository,
+)
+from backend.services.content_creation.video_draft_generation_pipeline.draft_content_item_creation.integrations.originality_engine_client import (
+    OriginalityEngineClient,
+)
+from backend.services.content_creation.video_draft_generation_pipeline.draft_content_item_creation.draft_creation_service import (
+    DraftCreationService,
+)
+from backend.services.content_creation.video_draft_generation_pipeline.draft_content_item_creation.draft_query_service import (
+    DraftQueryService,
+)
+from backend.services.content_creation.video_draft_generation_pipeline.draft_content_item_creation.draft_lifecycle_service import (
+    DraftLifecycleService,
+)
+from backend.services.content_creation.video_draft_generation_pipeline.draft_content_item_creation.metadata_service import (
+    MetadataService as DraftMetadataService,
+)
+from backend.services.content_creation.video_draft_generation_pipeline.draft_content_item_creation.thumbnail_service import (
+    ThumbnailService as DraftThumbnailService,
+)
+from backend.services.content_creation.video_draft_generation_pipeline.draft_content_item_creation.version_history_service import (
+    VersionHistoryService,
+)
+from backend.services.content_creation.video_draft_generation_pipeline.draft_content_item_creation.originality_check_service import (
+    OriginalityCheckService,
+)
+
+CONTRIBUTOR_ID = uuid.UUID("33333333-3333-3333-3333-333333333333")
+
+
+@pytest_asyncio.fixture
+async def sample_draft_content_item(async_session: AsyncSession) -> DraftContentItem:
+    """Create and return a sample DraftContentItem in Draft state."""
+    record = DraftContentItem(
+        content_item_id=uuid.uuid4(),
+        lead_creator_account_id=CREATOR_ID,
+        lifecycle_state=LifecycleState.DRAFT,
+        creation_source=CreationSource.SCRIPT_TO_VIDEO,
+        video_draft_url="s3://video-drafts/test/draft/video.mp4",
+        metadata_status=MetadataStatus.GENERATED,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+    async_session.add(record)
+    await async_session.flush()
+
+    # Create associated metadata
+    metadata = AIGeneratedMetadata(
+        metadata_id=uuid.uuid4(),
+        content_item_id=record.content_item_id,
+        ai_title_suggestion="Test Draft Title",
+        ai_description="Test Draft Description",
+        ai_topic_tags=["test", "draft"],
+        ai_topic_cluster="general",
+        metadata_engine_write_status=MetadataEngineWriteStatus.CONFIRMED,
+        created_at=datetime.now(timezone.utc),
+    )
+    async_session.add(metadata)
+
+    # Create associated thumbnails
+    for i in range(3):
+        thumb = AIGeneratedThumbnail(
+            thumbnail_id=uuid.uuid4(),
+            content_item_id=record.content_item_id,
+            thumbnail_url=f"s3://video-drafts/test/thumbnails/t{i + 1}.jpg",
+            display_order=i,
+            is_selected=False,
+            created_at=datetime.now(timezone.utc),
+        )
+        async_session.add(thumb)
+
+    # Create version history entry
+    entry = VersionHistoryEntry(
+        version_entry_id=uuid.uuid4(),
+        content_item_id=record.content_item_id,
+        event_type=VersionEventType.DRAFT_CREATED,
+        actor_account_id=CREATOR_ID,
+        actor_role=ActorRole.LEAD_CREATOR,
+        event_payload={"creation_source": "script_to_video"},
+        created_at=datetime.now(timezone.utc),
+    )
+    async_session.add(entry)
+
+    await async_session.commit()
+    return record
+
+
+@pytest.fixture
+def draft_content_item_repository() -> DraftContentItemRepository:
+    """Provide a DraftContentItemRepository instance."""
+    return DraftContentItemRepository()
+
+
+@pytest.fixture
+def metadata_repository() -> MetadataRepository:
+    """Provide a MetadataRepository instance."""
+    return MetadataRepository()
+
+
+@pytest.fixture
+def thumbnail_repository() -> ThumbnailRepository:
+    """Provide a ThumbnailRepository instance."""
+    return ThumbnailRepository()
+
+
+@pytest.fixture
+def version_history_repository() -> VersionHistoryRepository:
+    """Provide a VersionHistoryRepository instance."""
+    return VersionHistoryRepository()
+
+
+@pytest.fixture
+def originality_report_repository() -> OriginalityReportRepository:
+    """Provide an OriginalityReportRepository instance."""
+    return OriginalityReportRepository()
+
+
+@pytest.fixture
+def mock_originality_engine_client() -> AsyncMock:
+    """Provide a mocked originality engine client."""
+    client = AsyncMock(spec=OriginalityEngineClient)
+    client.check_originality = AsyncMock(
+        return_value={
+            "duplicate_risk_score": 15,
+            "similar_content_items": [],
+            "differentiation_recommendations": ["Add more unique content."],
+        }
+    )
+    client.check_availability = AsyncMock(return_value=True)
+    return client
+
+
+@pytest.fixture
+def draft_creation_service() -> DraftCreationService:
+    """Provide a DraftCreationService instance."""
+    return DraftCreationService()
+
+
+@pytest.fixture
+def draft_query_service() -> DraftQueryService:
+    """Provide a DraftQueryService instance."""
+    return DraftQueryService()
+
+
+@pytest.fixture
+def draft_metadata_service() -> DraftMetadataService:
+    """Provide a DraftMetadataService instance."""
+    return DraftMetadataService()
+
+
+@pytest.fixture
+def draft_thumbnail_service() -> DraftThumbnailService:
+    """Provide a DraftThumbnailService instance."""
+    return DraftThumbnailService()
+
+
+@pytest.fixture
+def version_history_service() -> VersionHistoryService:
+    """Provide a VersionHistoryService instance."""
+    return VersionHistoryService()
+
+
+@pytest.fixture
+def originality_check_service(mock_originality_engine_client: AsyncMock) -> OriginalityCheckService:
+    """Provide an OriginalityCheckService with mocked engine client."""
+    return OriginalityCheckService(engine_client=mock_originality_engine_client)
+
+
+@pytest.fixture
+def draft_lifecycle_service(
+    mock_originality_engine_client: AsyncMock,
+) -> DraftLifecycleService:
+    """Provide a DraftLifecycleService with mocked dependencies."""
+    originality_svc = OriginalityCheckService(engine_client=mock_originality_engine_client)
+    return DraftLifecycleService(originality_service=originality_svc)

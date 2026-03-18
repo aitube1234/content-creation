@@ -10,6 +10,9 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from backend.services.content_creation.video_draft_generation_pipeline.script_prompt_ingestion.models import (
     Base,
 )
+# Import all models to ensure Alembic metadata detection includes new tables
+import backend.services.content_creation.video_draft_generation_pipeline.ai_video_draft_assembly.models  # noqa: F401
+import backend.services.content_creation.video_draft_generation_pipeline.draft_content_item_creation.models  # noqa: F401
 
 config = context.config
 

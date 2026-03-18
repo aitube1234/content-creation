@@ -14,6 +14,9 @@ from backend.services.content_creation.video_draft_generation_pipeline.script_pr
 from backend.services.content_creation.video_draft_generation_pipeline.ai_video_draft_assembly.router import (
     router as video_draft_assembly_router,
 )
+from backend.services.content_creation.video_draft_generation_pipeline.draft_content_item_creation.router import (
+    router as draft_content_item_router,
+)
 
 
 @asynccontextmanager
@@ -32,6 +35,7 @@ register_exception_handlers(app)
 # Register routers
 app.include_router(script_prompt_router)
 app.include_router(video_draft_assembly_router)
+app.include_router(draft_content_item_router)
 
 
 @app.get("/health")

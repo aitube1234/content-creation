@@ -49,6 +49,13 @@ class Settings(BaseSettings):
     LANGSMITH_API_KEY: str = ""
     LANGSMITH_PROJECT: str = "ai-video-draft-assembly"
 
+    # Draft Content Item Creation
+    ORIGINALITY_ENGINE_BASE_URL: str = "http://localhost:8090"
+    ORIGINALITY_SLA_TIMEOUT: int = 30
+    THUMBNAIL_MIN_COUNT: int = 3
+    METADATA_RETRY_MAX_ATTEMPTS: int = 3
+    METADATA_RETRY_BACKOFF_FACTOR: float = 2.0
+
     # Logging
     LOG_LEVEL: str = "INFO"
     SERVICE_NAME: str = "content_creation"

@@ -301,3 +301,173 @@ def register_exception_handlers(app: FastAPI) -> None:
                 "details": exc.details,
             },
         )
+
+    # --- Draft Content Item Creation exception handlers ---
+
+    from backend.services.content_creation.video_draft_generation_pipeline.draft_content_item_creation.exceptions import (
+        ContentItemImmutableFieldError,
+        ContributorAccessDeniedError,
+        DraftContentItemCreationError,
+        DraftContentItemNotFoundError,
+        DraftNotDeletableError,
+        InvalidLifecycleTransitionError,
+        MetadataNotFoundError,
+        OriginalityCheckTimeoutError,
+        OriginalityEngineUnavailableError,
+        ThumbnailNotFoundError,
+        VersionEntryNotFoundError,
+    )
+
+    @app.exception_handler(DraftContentItemNotFoundError)
+    async def draft_not_found_handler(
+        request: Request, exc: DraftContentItemNotFoundError
+    ) -> JSONResponse:
+        logger.warning("Draft content item not found: %s", exc.message)
+        return JSONResponse(
+            status_code=404,
+            content={
+                "error_code": "DRAFT_CONTENT_ITEM_NOT_FOUND",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(InvalidLifecycleTransitionError)
+    async def invalid_lifecycle_transition_handler(
+        request: Request, exc: InvalidLifecycleTransitionError
+    ) -> JSONResponse:
+        logger.warning("Invalid lifecycle transition: %s", exc.message)
+        return JSONResponse(
+            status_code=409,
+            content={
+                "error_code": "INVALID_LIFECYCLE_TRANSITION",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(DraftNotDeletableError)
+    async def draft_not_deletable_handler(
+        request: Request, exc: DraftNotDeletableError
+    ) -> JSONResponse:
+        logger.warning("Draft not deletable: %s", exc.message)
+        return JSONResponse(
+            status_code=409,
+            content={
+                "error_code": "DRAFT_NOT_DELETABLE",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(ContributorAccessDeniedError)
+    async def contributor_access_denied_handler(
+        request: Request, exc: ContributorAccessDeniedError
+    ) -> JSONResponse:
+        logger.warning("Contributor access denied: %s", exc.message)
+        return JSONResponse(
+            status_code=403,
+            content={
+                "error_code": "CONTRIBUTOR_ACCESS_DENIED",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(ContentItemImmutableFieldError)
+    async def immutable_field_handler(
+        request: Request, exc: ContentItemImmutableFieldError
+    ) -> JSONResponse:
+        logger.warning("Immutable field update attempted: %s", exc.message)
+        return JSONResponse(
+            status_code=409,
+            content={
+                "error_code": "CONTENT_ITEM_IMMUTABLE_FIELD",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(OriginalityCheckTimeoutError)
+    async def originality_timeout_handler(
+        request: Request, exc: OriginalityCheckTimeoutError
+    ) -> JSONResponse:
+        logger.warning("Originality check timeout: %s", exc.message)
+        return JSONResponse(
+            status_code=504,
+            content={
+                "error_code": "ORIGINALITY_CHECK_TIMEOUT",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(OriginalityEngineUnavailableError)
+    async def originality_unavailable_handler(
+        request: Request, exc: OriginalityEngineUnavailableError
+    ) -> JSONResponse:
+        logger.error("Originality engine unavailable: %s", exc.message)
+        return JSONResponse(
+            status_code=502,
+            content={
+                "error_code": "ORIGINALITY_ENGINE_UNAVAILABLE",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(MetadataNotFoundError)
+    async def metadata_not_found_handler(
+        request: Request, exc: MetadataNotFoundError
+    ) -> JSONResponse:
+        logger.warning("Metadata not found: %s", exc.message)
+        return JSONResponse(
+            status_code=404,
+            content={
+                "error_code": "METADATA_NOT_FOUND",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(ThumbnailNotFoundError)
+    async def thumbnail_not_found_handler(
+        request: Request, exc: ThumbnailNotFoundError
+    ) -> JSONResponse:
+        logger.warning("Thumbnail not found: %s", exc.message)
+        return JSONResponse(
+            status_code=404,
+            content={
+                "error_code": "THUMBNAIL_NOT_FOUND",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(VersionEntryNotFoundError)
+    async def version_entry_not_found_handler(
+        request: Request, exc: VersionEntryNotFoundError
+    ) -> JSONResponse:
+        logger.warning("Version entry not found: %s", exc.message)
+        return JSONResponse(
+            status_code=404,
+            content={
+                "error_code": "VERSION_ENTRY_NOT_FOUND",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    @app.exception_handler(DraftContentItemCreationError)
+    async def generic_draft_creation_handler(
+        request: Request, exc: DraftContentItemCreationError
+    ) -> JSONResponse:
+        logger.error("Draft content item creation error: %s", exc.message)
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error_code": "DRAFT_CONTENT_ITEM_CREATION_ERROR",
+                "message": exc.message,
+                "details": exc.details,
+            },
+        )
