@@ -11,6 +11,9 @@ from backend.services.content_creation.utils.logging_config import configure_log
 from backend.services.content_creation.video_draft_generation_pipeline.script_prompt_ingestion.router import (
     router as script_prompt_router,
 )
+from backend.services.content_creation.video_draft_generation_pipeline.ai_video_draft_assembly.router import (
+    router as video_draft_assembly_router,
+)
 
 
 @asynccontextmanager
@@ -28,6 +31,7 @@ register_exception_handlers(app)
 
 # Register routers
 app.include_router(script_prompt_router)
+app.include_router(video_draft_assembly_router)
 
 
 @app.get("/health")
